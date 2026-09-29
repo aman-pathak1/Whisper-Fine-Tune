@@ -58,7 +58,7 @@ parser.add_argument(
     "--train_strategy",
     type=str,
     required=False,
-    default="steps",
+    default="epoch",
     help="Training strategy. Choose between steps and epoch."
 )
 
@@ -98,7 +98,7 @@ parser.add_argument(
     "--num_epochs",
     type=int,
     required=False,
-    default=20,
+    default=10,
     help="Number of epochs to train for."
 )
 
@@ -458,7 +458,7 @@ def prepare_dataset(batch):
     return batch
 
 
-max_label_length = model.config.max_length
+max_label_length = 448
 
 min_input_length = 0.0
 max_input_length = 30.0
@@ -641,7 +641,7 @@ if args.train_strategy == "epoch":
 
         fp16=True,
 
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
 
         save_strategy="epoch",
 
@@ -689,7 +689,7 @@ elif args.train_strategy == "steps":
 
         fp16=True,
 
-        evaluation_strategy="steps",
+        eval_strategy="steps",
 
         eval_steps=1000,
 
@@ -737,7 +737,7 @@ trainer = Seq2SeqTrainer(
 
     compute_metrics=compute_metrics,
 
-    tokenizer=processor.feature_extractor,
+    processing_class=processor,
 )
 
 
@@ -750,7 +750,7 @@ print(
     "TRAINING IN PROGRESS..."
 )
 
-trainer.train()
+trainer.train(resume_from_checkpoint=args.resume_from_ckpt)
 
 print(
     "DONE TRAINING"
