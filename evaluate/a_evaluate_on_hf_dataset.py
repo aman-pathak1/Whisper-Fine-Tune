@@ -7,15 +7,21 @@ from datasets import load_dataset, Audio
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from whisper_jax import FlaxWhisperForConditionalGeneration, FlaxWhisperPipline
 
+
 wer_metric = evaluate.load("wer")
 cer_metric = evaluate.load("cer")
 
 
 def is_target_text_in_range(ref):
-    if ref.strip() == "ignore time segment in scoring":
+    if ref is None:
         return False
-    else:
-        return ref.strip() != ""
+
+    ref = str(ref).strip()
+
+    if ref == "ignore time segment in scoring":
+        return False
+
+    return ref != ""
 
 
 def get_text(sample):
@@ -33,8 +39,8 @@ def get_text(sample):
         raise ValueError(
             f"Expected transcript column of either 'text', 'sentence', "
             f"'normalized_text' or 'transcript'. Got sample of "
-            f"{sample.keys()}. Ensure a text column name is present in "
-            f"the dataset."
+            f"{sample.keys()}. Ensure a text column name is present "
+            f"in the dataset."
         )
 
 
@@ -49,6 +55,10 @@ def get_text_column_names(column_names):
         return "transcript"
     elif "transcription" in column_names:
         return "transcription"
+    else:
+        raise ValueError(
+            f"No transcript column found. Available columns: {column_names}"
+        )
 
 
 whisper_norm = BasicTextNormalizer()
@@ -89,12 +99,17 @@ def main(args):
         )
     )
 
-    dataset = load_dataset(
-        args.dataset,
-        args.config,
-        split=args.split,
-        use_auth_token=True,
-    )
+    if args.config:
+        dataset = load_dataset(
+            args.dataset,
+            args.config,
+            split=args.split
+        )
+    else:
+        dataset = load_dataset(
+            args.dataset,
+            split=args.split
+        )
 
     text_column_name = get_text_column_names(
         dataset.column_names
@@ -190,14 +205,17 @@ def main(args):
     print("\nNORMALIZED WER : ", norm_wer)
     print("NORMALIZED CER : ", norm_cer)
 
-    os.system(
-        f"mkdir -p {args.output_dir}"
+    os.makedirs(
+        args.output_dir,
+        exist_ok=True
     )
+
+    config_name = args.config if args.config else "default"
 
     dset = (
         args.dataset.replace("/", "_")
         + "_"
-        + args.config
+        + config_name
         + "_"
         + args.split
     )
@@ -212,7 +230,8 @@ def main(args):
 
     result_file = open(
         op_file,
-        "w"
+        "w",
+        encoding="utf-8"
     )
 
     result_file.write(
@@ -288,9 +307,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        required=False,
-        default="hi",
-        help="Config of the dataset. Eg. 'hi' for the Hindi split of Common Voice",
+        default=None,
+        help="Config of the dataset.",
     )
 
     parser.add_argument(
