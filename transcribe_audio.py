@@ -64,7 +64,6 @@ parser.add_argument(
     help="The device to run the pipeline on. -1 for CPU, 0 for the first GPU.",
 )
 
-
 args = parser.parse_args()
 
 
