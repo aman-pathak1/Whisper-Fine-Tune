@@ -1,6 +1,8 @@
 import torch
 import argparse
 import evaluate
+import os
+import importlib.util
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 
@@ -755,3 +757,124 @@ trainer.train(resume_from_checkpoint=args.resume_from_ckpt)
 print(
     "DONE TRAINING"
 )
+
+###############################     FINAL TEST EVALUATION      ############################
+
+def run_final_test_evaluation():
+
+    print("\n")
+    print("=" * 70)
+    print("STARTING FINAL TEST EVALUATION")
+    print("=" * 70)
+
+    current_file_dir = os.path.dirname(
+        os.path.abspath(__file__)
+    ) if "__file__" in globals() else os.getcwd()
+
+    evaluation_file = os.path.abspath(
+        os.path.join(
+            current_file_dir,
+            "..",
+            "evaluate",
+            "evaluate_on_hf_dataset.py"
+        )
+    )
+
+    if not os.path.exists(evaluation_file):
+
+        evaluation_file = os.path.abspath(
+            os.path.join(
+                current_file_dir,
+                "evaluate_on_hf_dataset.py"
+            )
+        )
+
+    if not os.path.exists(evaluation_file):
+
+        raise FileNotFoundError(
+            f"Evaluation file not found: {evaluation_file}"
+        )
+
+    spec = importlib.util.spec_from_file_location(
+        "evaluate_on_hf_dataset",
+        evaluation_file
+    )
+
+    evaluation_module = importlib.util.module_from_spec(
+        spec
+    )
+
+    spec.loader.exec_module(
+        evaluation_module
+    )
+
+    original_get_text = evaluation_module.get_text
+    original_get_text_column_name = (
+        evaluation_module.get_text_column_name
+    )
+
+    def get_text_with_training_column(sample):
+
+        if "verbatim_transcript" in sample:
+
+            return sample["verbatim_transcript"]
+
+        return original_get_text(sample)
+
+    def get_text_column_name_with_training_column(
+        column_names
+    ):
+
+        if "verbatim_transcript" in column_names:
+
+            return "verbatim_transcript"
+
+        return original_get_text_column_name(
+            column_names
+        )
+
+    evaluation_module.get_text = (
+        get_text_with_training_column
+    )
+
+    evaluation_module.get_text_column_name = (
+        get_text_column_name_with_training_column
+    )
+
+    trainer.save_model(
+        training_args.output_dir
+    )
+
+    test_evaluation_args = argparse.Namespace(
+
+        model=training_args.output_dir,
+
+        dataset=args.eval_datasets[0],
+
+        config=(
+            args.eval_dataset_configs[0]
+            if args.eval_dataset_configs[0]
+            else None
+        ),
+
+        split="test",
+
+        language=args.language,
+
+        output_dir=os.path.join(
+            training_args.output_dir,
+            "test_evaluation"
+        )
+    )
+
+    evaluation_module.main(
+        test_evaluation_args
+    )
+
+    print("=" * 70)
+    print("FINAL TEST EVALUATION COMPLETED")
+    print("=" * 70)
+
+
+run_final_test_evaluation()
+
