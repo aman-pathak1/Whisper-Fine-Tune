@@ -105,7 +105,7 @@ The fine-tuned model is evaluated using Word Error Rate (WER) and Character Erro
 
 ```bash
 python inference/eval.py \
-    --hf_model <MODEL_NAME> \
+    --hf_model <whisper-small> \
     --language hi \
     --config hi \
     --split test
@@ -129,7 +129,7 @@ from transformers import pipeline
 
 pipe = pipeline(
     "automatic-speech-recognition",
-    model="YOUR_MODEL_NAME",
+    model="<whisper-small",
     device=0
 )
 
