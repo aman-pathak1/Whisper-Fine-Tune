@@ -24,9 +24,9 @@ Fine-Tuned Model
         v
 Evaluation
         |
-        +---- WER: 4.8%
+        +---- WER: 5.5%
         |
-        +---- CER: 3.4%
+        +---- CER: 4.6%
 ```
 
 ## Features
@@ -115,8 +115,8 @@ python inference/eval.py \
 
 | Metric | Score |
 |---|---:|
-| WER | 4.8% |
-| CER | 3.4% |
+| WER | 5.5% |
+| CER | 4.6% |
 
 Lower WER and CER indicate better transcription performance.
 
